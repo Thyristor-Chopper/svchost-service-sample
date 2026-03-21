@@ -25,9 +25,9 @@ DWORD WINAPI WorkerThread(param)
 	LPVOID param;
 {
 	do {
-		/* 5초마다 여기 있는 코드 실행 */
+		/* 1분마다 여기 있는 코드 실행 */
 		MessageBox(NULL, TEXT("안녕하세요"), TEXT("알림"), MB_OK | MB_ICONINFORMATION);
-	} while(WaitForSingleObject(stopEvent, 5000) == WAIT_TIMEOUT);
+	} while(WaitForSingleObject(stopEvent, 60000) == WAIT_TIMEOUT);
 
 	return ERROR_SUCCESS;
 }

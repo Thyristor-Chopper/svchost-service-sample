@@ -13,18 +13,16 @@ const BOOL interactive = TRUE;									/* 서비스가 UI/창을 표시할 수 있는지 여부
 
 __declspec(dllexport) HRESULT WINAPI DllRegisterServer(void)
 {
-	if(InstallService(serviceName, displayName, description, SERVICE_DEMAND_START, serviceGroup, interactive, FALSE, protected))
-		return S_OK;
-	else
+	if(!InstallService(serviceName, displayName, description, SERVICE_DEMAND_START, serviceGroup, interactive, FALSE, protected))
 		return E_FAIL;
+	return S_OK;
 }
 
 __declspec(dllexport) HRESULT WINAPI DllUnregisterServer(void)
 {
-	if(UninstallService(serviceName, serviceGroup))
-		return S_OK;
-	else
+	if(!UninstallService(serviceName, serviceGroup))
 		return E_FAIL;
+	return S_OK;
 }
 
 __declspec(dllexport) BOOL WINAPI DllMain(hInstDLL, fdwReason, lpvReserved)
