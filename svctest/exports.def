@@ -1,0 +1,6 @@
+LIBRARY "svctest"
+EXPORTS
+	DllRegisterServer	PRIVATE
+	DllUnregisterServer	PRIVATE
+	ServiceMain
+	DllMain
