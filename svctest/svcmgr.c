@@ -32,7 +32,7 @@ BOOL InstallService(name, displayName, description, startType, group, interactiv
 	if(nameSize > MAX_SERVICE_NAME_LENGTH) return FALSE;
 	if(_tcslen(group) > MAX_SERVICE_GROUP_LENGTH) return FALSE;
 
-	/* 서비스 관리자 열기 */
+	/* 서비스 제어 관리자 열기 */
 	hSCM = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE | SC_MANAGER_CONNECT);
 	if(!hSCM) return FALSE;
 
@@ -47,11 +47,11 @@ BOOL InstallService(name, displayName, description, startType, group, interactiv
 	if(RegCreateKeyEx(HKEY_LOCAL_MACHINE, key, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
 		TCHAR modulePath[MAX_PATH];
 		HMODULE hMod = NULL;
-
-		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR) InstallService, &hMod);
-		GetModuleFileName(hMod, modulePath, MAX_PATH);
-
-		RegSetValueEx(hKey, _T("ServiceDll"), 0, REG_EXPAND_SZ, (BYTE*) modulePath, (DWORD) (_tcslen(modulePath) + 1) * sizeof(TCHAR));
+		if(GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR) InstallService, &hMod)) {
+			if(GetModuleFileName(hMod, modulePath, MAX_PATH)) {
+				RegSetValueEx(hKey, _T("ServiceDll"), 0, REG_EXPAND_SZ, (BYTE*) modulePath, (DWORD) (_tcslen(modulePath) + 1) * sizeof(TCHAR));
+			} else failed = TRUE;
+		} else failed = TRUE;
 		RegCloseKey(hKey);
 	} else failed = TRUE;
 	if(failed) goto cleanup;
@@ -196,12 +196,7 @@ VOID ProtectService(hService)
 	/* const TCHAR* sddl = _T("D:(D;;0x00022;;;WD)"); <- services.msc에 안 나타남 */
 	const TCHAR* sddl = _T("D:(D;;DCWP;;;WD)(A;;GA;;;BA)(A;;CCLCSWLOCRRC;;;WD)");  /* (A;;GA;;;BA)는 서비스 제거 시 필요 */
 	PSECURITY_DESCRIPTOR pSD = NULL;
-	if(!ConvertStringSecurityDescriptorToSecurityDescriptor(sddl, SDDL_REVISION_1, &pSD, NULL)) {
-		char d[50];
-		sprintf(d, "%d %x", GetLastError(), GetLastError());
-		MessageBoxA(NULL,d,"",MB_OK);
-		return;
-	}  /* 실패 */
+	if(!ConvertStringSecurityDescriptorToSecurityDescriptor(sddl, SDDL_REVISION_1, &pSD, NULL)) return;  /* 실패 */
 	SetServiceObjectSecurity(hService, DACL_SECURITY_INFORMATION, pSD);
 	LocalFree(pSD);
 }
