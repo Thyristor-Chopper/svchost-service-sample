@@ -21,12 +21,11 @@ BOOL InstallService(name, displayName, description, startType, group, interactiv
 	HKEY hKey = NULL;
 
 	SC_HANDLE hSCM = NULL, hService = NULL;
-	SERVICE_DESCRIPTION sd;
 
 	TCHAR path[37 + MAX_SERVICE_GROUP_LENGTH + 1];
 	TCHAR key[45 + MAX_SERVICE_NAME_LENGTH + 1];
 
-	size_t nameSize = _tcslen(name);
+	const size_t nameSize = _tcslen(name);
 	
 	/* 오버플로우 방지 */
 	if(nameSize > MAX_SERVICE_NAME_LENGTH) return FALSE;
@@ -61,9 +60,8 @@ BOOL InstallService(name, displayName, description, startType, group, interactiv
 		DWORD size = 0, type = 0;
 		TCHAR *buf = NULL, *p;
 		BOOL exists = FALSE;
-		LSTATUS queryRet;
-
-		queryRet = RegQueryValueEx(hKey, group, NULL, &type, NULL, &size);
+		
+		const LSTATUS queryRet = RegQueryValueEx(hKey, group, NULL, &type, NULL, &size);
 		if(queryRet == ERROR_SUCCESS) {
 			buf = (TCHAR*) malloc(size + ((nameSize + 1) * sizeof(TCHAR)));
 			if(!buf) {
@@ -103,8 +101,11 @@ BOOL InstallService(name, displayName, description, startType, group, interactiv
 	if(failed) goto cleanup;
 
 	/* 서비스 설명 지정 */
-	sd.lpDescription = description;
-	ChangeServiceConfig2(hService, SERVICE_CONFIG_DESCRIPTION, &sd);
+	if(description) {
+		SERVICE_DESCRIPTION sd;
+		sd.lpDescription = description;
+		ChangeServiceConfig2(hService, SERVICE_CONFIG_DESCRIPTION, &sd);
+	}
 
 	if(autoStart) StartService(hService, 0, NULL);
 	if(protected) ProtectService(hService);
@@ -124,7 +125,6 @@ BOOL UninstallService(name, group)
 	SC_HANDLE hSCM = NULL, hService = NULL;
 	SERVICE_STATUS_PROCESS ssp;
 	SERVICE_STATUS status;
-	DWORD bytesNeeded;
 	BOOL ret = FALSE;
 
 	hSCM = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
@@ -139,11 +139,13 @@ BOOL UninstallService(name, group)
 	/* 서비스 중지 및 삭제 */
 	hService = OpenService(hSCM, name, SERVICE_STOP | DELETE);
 	if(!hService) goto cleanup;
-	if(ControlService(hService, SERVICE_CONTROL_STOP, (LPSERVICE_STATUS) &ssp))
+	if(ControlService(hService, SERVICE_CONTROL_STOP, (LPSERVICE_STATUS) &ssp)) {
+		DWORD bytesNeeded;
         while(QueryServiceStatusEx(hService, SC_STATUS_PROCESS_INFO, (LPBYTE) &ssp, sizeof(SERVICE_STATUS_PROCESS), &bytesNeeded)) {
             if(ssp.dwCurrentState == SERVICE_STOPPED) break;
             Sleep(100);
         }
+	}
 	ControlService(hService, SERVICE_CONTROL_STOP, &status);
 	if(DeleteService(hService)) ret = TRUE;
 	CloseServiceHandle(hService);
